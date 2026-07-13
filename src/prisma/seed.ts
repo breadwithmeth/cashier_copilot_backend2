@@ -1,0 +1,117 @@
+import { PrismaClient, Severity, UserRole } from '@prisma/client';
+import { createRawApiKey, hashApiKey, hashPassword } from '../common/utils/security.js';
+
+const prisma = new PrismaClient();
+
+const actionCodes = [
+  'CUSTOMER_ENTERED','CUSTOMER_LEFT','CUSTOMER_WAITING','CASHIER_PRESENT','CASHIER_ABSENT','GREETING_DETECTED','NEED_IDENTIFICATION_DETECTED','CONSULTATION_DETECTED','UPSELL_DETECTED','CASH_SCRIPT_DETECTED','PURCHASE_AMOUNT_ANNOUNCED','CHANGE_AMOUNT_ANNOUNCED','GOODBYE_DETECTED','INCORRECT_TONE_DETECTED','PHONE_DISTRACTION_DETECTED','PRODUCT_PICKED','PRODUCT_MOVED_TO_CUSTOMER','PRODUCT_TRANSFERRED','PRODUCT_SCANNED','PRODUCT_NOT_SCANNED','SCANNER_PRESENTED','SCANNER_BEEP_DETECTED','SCAN_SIMULATION_SUSPECTED','PRODUCT_REMOVED_FROM_RECEIPT','CONTAINER_USED','CONTAINER_TRANSFERRED','CONTAINER_SCANNED','CONTAINER_NOT_SCANNED','PAYMENT_STARTED','CASH_PAYMENT_DETECTED','CARD_PAYMENT_DETECTED','QR_PAYMENT_DETECTED','MONEY_RECEIVED','CHANGE_GIVEN','PAYMENT_METHOD_MISMATCH','PAYMENT_AMOUNT_MISMATCH','RECEIPT_PRINTED','RECEIPT_GIVEN','RECEIPT_PLACED_IN_BAG','RECEIPT_NOT_GIVEN','BUSINESS_CARD_GIVEN','BUSINESS_CARD_NOT_GIVEN','AGE_DOCUMENT_REQUESTED','AGE_DOCUMENT_SHOWN','RETURN_DETECTED','VOID_DETECTED','PRODUCT_TRANSFER_DURING_RETURN','PRODUCT_TRANSFER_DURING_VOID','RECEIVING_STARTED','INVOICE_CHECKED','PRODUCT_COUNT_STARTED','PRODUCT_COUNT_COMPLETED','EXPIRATION_DATE_CHECKED','PACKAGE_INTEGRITY_CHECKED','DAMAGED_PRODUCT_SEPARATED','RECEIVING_DIFFERENCE_RECORDED','PRODUCT_MOVED_WITHOUT_COUNT','RECEIVING_COMPLETED'
+];
+
+const rules = [
+  ['product-transferred-not-scanned','Product transferred but not scanned','transferred_item_missing_in_receipt','HIGH','SALES'],
+  ['scanner-without-pos-scan','Scanner interaction without POS scan','scanner_without_pos_event','HIGH','SALES'],
+  ['container-transferred-not-scanned','Container transferred but not scanned','container_missing_in_receipt','MEDIUM','SALES'],
+  ['receipt-not-given','Receipt not given','required_action','MEDIUM','SERVICE'],
+  ['business-card-not-given','Business card not given','required_action','MEDIUM','SERVICE'],
+  ['payment-method-mismatch','Payment method mismatch','payment_method_mismatch','HIGH','PAYMENT'],
+  ['payment-amount-mismatch','Payment amount mismatch','payment_amount_mismatch','HIGH','PAYMENT'],
+  ['incorrect-change','Incorrect change','change_amount_mismatch','HIGH','PAYMENT'],
+  ['purchase-amount-not-announced','Purchase amount not announced','required_phrase','MEDIUM','SERVICE'],
+  ['change-not-announced','Change not announced','required_phrase','MEDIUM','SERVICE'],
+  ['greeting-missing','Greeting missing','speech_absence','LOW','SERVICE'],
+  ['upsell-missing','Upsell missing','required_action','LOW','SERVICE'],
+  ['farewell-missing','Farewell missing','speech_absence','LOW','SERVICE'],
+  ['product-transfer-during-return','Product transferred during return','return_with_product_transfer','HIGH','SALES'],
+  ['product-transfer-during-void','Product transferred during void','void_with_product_transfer','HIGH','SALES'],
+  ['phone-distraction','Employee distracted by phone','forbidden_action','LOW','SERVICE'],
+  ['receiving-without-counting','Receiving without counting','receiving_count_missing','HIGH','RECEIVING'],
+  ['receiving-quantity-mismatch','Receiving quantity mismatch','receiving_quantity_mismatch','HIGH','RECEIVING'],
+  ['expiration-not-checked','Expiration date not checked','expiration_check_missing','MEDIUM','RECEIVING'],
+  ['package-integrity-not-checked','Packaging integrity not checked','package_check_missing','MEDIUM','RECEIVING'],
+  ['damaged-product-not-separated','Damaged product not separated','damaged_product_not_separated','MEDIUM','RECEIVING'],
+  ['receiving-discrepancy-not-recorded','Receiving discrepancy not recorded','receiving_difference_not_recorded','MEDIUM','RECEIVING'],
+  ['receiving-too-fast','Receiving completed too fast','receiving_too_fast','LOW','RECEIVING'],
+  ['video-stream-offline','Video stream offline','video_offline','HIGH','CAMERA_HEALTH'],
+  ['audio-stream-offline','Audio stream offline','audio_offline','MEDIUM','CAMERA_HEALTH'],
+  ['receipt-delayed','Receipt delayed','integration_event_missing','MEDIUM','INTEGRATION'],
+  ['evidence-unavailable','Evidence unavailable','evidence_unavailable','MEDIUM','INTEGRATION']
+] as const;
+
+async function user(role: UserRole, email: string) {
+  return prisma.user.upsert({
+    where: { email },
+    update: {},
+    create: { email, passwordHash: await hashPassword('Password123!'), firstName: role, lastName: 'User', role }
+  });
+}
+
+async function main() {
+  const store = await prisma.store.upsert({
+    where: { code: 'tolstogo-90' },
+    update: {},
+    create: { name: 'Tolstogo 90', code: 'tolstogo-90', address: 'Tolstogo 90', city: 'Almaty' }
+  });
+  const register = await prisma.register.upsert({
+    where: { storeId_code: { storeId: store.id, code: 'register-1' } },
+    update: {},
+    create: { storeId: store.id, name: 'Register 1', code: 'register-1', registerNumber: 1, workstationId: 'workstation-1' }
+  });
+  await prisma.camera.upsert({
+    where: { code: 'cam10' },
+    update: {},
+    create: { storeId: store.id, registerId: register.id, name: 'Checkout camera', code: 'cam10', locationType: 'CHECKOUT', videoRtspUrl: 'rtsp://video:pass@camera/video', audioRtspUrl: 'rtsp://audio:pass@mic/audio', audioEnabled: true }
+  });
+  await prisma.camera.upsert({
+    where: { code: 'receiving-cam1' },
+    update: {},
+    create: { storeId: store.id, name: 'Receiving camera', code: 'receiving-cam1', locationType: 'RECEIVING_AREA', videoRtspUrl: 'rtsp://video:pass@camera/receiving', audioEnabled: false }
+  });
+  const employee = await prisma.employee.upsert({
+    where: { externalId: 'employee-45' },
+    update: {},
+    create: { storeId: store.id, externalId: 'employee-45', employeeNumber: '45', firstName: 'Aigerim', lastName: 'Cashier', position: 'Cashier' }
+  });
+  await prisma.shift.create({ data: { storeId: store.id, registerId: register.id, employeeId: employee.id, startedAt: new Date(), status: 'ACTIVE' } });
+  const seededUsers = await Promise.all([
+    user('SUPER_ADMIN', 'superadmin@example.com'),
+    user('ADMIN', 'admin@example.com'),
+    user('OPERATIONS_DIRECTOR', 'ops@example.com'),
+    user('STORE_MANAGER', 'manager@example.com'),
+    user('QUALITY_CONTROL', 'qc@example.com'),
+    user('HR', 'hr@example.com'),
+    user('EMPLOYEE', 'employee@example.com')
+  ]);
+  for (const u of seededUsers) {
+    await prisma.userStoreAccess.upsert({ where: { userId_storeId: { userId: u.id, storeId: store.id } }, update: {}, create: { userId: u.id, storeId: store.id } });
+  }
+  for (const code of actionCodes) {
+    await prisma.actionType.upsert({ where: { code }, update: {}, create: { code, name: code.replaceAll('_', ' '), category: code.split('_')[0], description: code.replaceAll('_', ' '), defaultSeverity: Severity.LOW } });
+  }
+  for (const [code, name, evaluator, severity, domain] of rules) {
+    await prisma.rule.upsert({
+      where: { code },
+      update: {},
+      create: { code, name, description: name, domain: domain as any, triggerType: 'ACTION', triggerCode: code, condition: { evaluator }, severity: severity as any, createEmployeeNotification: ['HIGH','MEDIUM'].includes(severity), createManagerAlert: severity === 'HIGH', requireEvidence: severity === 'HIGH' }
+    });
+  }
+  const standard = await prisma.serviceStandard.upsert({ where: { id: 'default-service-standard' }, update: {}, create: { id: 'default-service-standard', name: 'Default checkout standard', description: 'Greeting, consultation, payment, receipt, farewell' } });
+  await prisma.serviceStandardCriterion.createMany({
+    data: ['GREETING_DETECTED','UPSELL_DETECTED','PURCHASE_AMOUNT_ANNOUNCED','RECEIPT_GIVEN','GOODBYE_DETECTED'].map((code, index) => ({ serviceStandardId: standard.id, name: code, code, description: code, category: 'CONTACT', weight: 1, sourceType: 'ACTION', actionTypeCode: code, sortOrder: index })),
+    skipDuplicates: true
+  });
+  for (const [name, serviceType, permissions] of [
+    ['Analytics service', 'ANALYTICS_SERVICE', ['analytics:write']],
+    ['Integration service', 'INTEGRATION_SERVICE', ['integrations:write']]
+  ] as const) {
+    const raw = createRawApiKey(serviceType === 'ANALYTICS_SERVICE' ? 'analytics_key' : 'integration_key');
+    await prisma.apiKey.upsert({
+      where: { keyPrefix: raw.split('_').slice(0, 2).join('_') },
+      update: {},
+      create: { name, serviceType, keyPrefix: raw.split('_').slice(0, 2).join('_'), keyHash: hashApiKey(raw), permissions: [...permissions], allowedStoreIds: [store.id], allowedRegisterIds: [register.id], allowedCameraIds: [] }
+    });
+    console.log(`${name} API key: ${raw}`);
+  }
+  console.log('Seeded users use password: Password123!');
+}
+
+main().finally(() => prisma.$disconnect());

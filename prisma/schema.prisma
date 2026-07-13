@@ -1,0 +1,1273 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  OPERATIONS_DIRECTOR
+  REGIONAL_MANAGER
+  STORE_MANAGER
+  QUALITY_CONTROL
+  HR
+  ANALYST
+  OPERATOR
+  EMPLOYEE
+  VIEWER
+  ANALYTICS_SERVICE
+  INTEGRATION_SERVICE
+}
+
+enum Severity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum LocationType {
+  CHECKOUT
+  RECEIVING_AREA
+  WAREHOUSE
+  SALES_FLOOR
+  OTHER
+}
+
+enum StreamStatus {
+  ONLINE
+  OFFLINE
+  DEGRADED
+  DISABLED
+  UNKNOWN
+}
+
+enum ShiftStatus {
+  PLANNED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum ReceiptOperationType {
+  SALE
+  RETURN
+  CANCELLATION
+  VOID
+  RECEIPT_CORRECTION
+}
+
+enum ReceiptStatus {
+  OPEN
+  COMPLETED
+  CANCELLED
+  VOIDED
+  RETURNED
+  PARTIALLY_RETURNED
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  BONUS
+  MIXED
+  QR
+  OTHER
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+enum PosOperationType {
+  RECEIPT_OPENED
+  PRODUCT_SCANNED
+  PRODUCT_MANUALLY_ADDED
+  PRODUCT_REMOVED
+  RECEIPT_COMPLETED
+  RECEIPT_CANCELLED
+  VOID
+  RETURN_STARTED
+  RETURN_COMPLETED
+  PAYMENT_STARTED
+  PAYMENT_COMPLETED
+  CASH_RECEIVED
+  CHANGE_CALCULATED
+  CASH_DRAWER_OPENED
+  SHIFT_OPENED
+  SHIFT_CLOSED
+}
+
+enum CheckoutSessionStatus {
+  OPEN
+  COMPLETED
+  ABANDONED
+  CANCELLED
+  NEEDS_REVIEW
+}
+
+enum MediaType {
+  VIDEO
+  AUDIO
+  MULTIMODAL
+  POS
+  RECEIVING
+  SYSTEM
+  MANUAL
+  AUDIO_VIDEO
+}
+
+enum DetectionType {
+  CUSTOMER
+  CASHIER
+  PRODUCT
+  SCANNER
+  RECEIPT
+  BUSINESS_CARD
+  PACKAGE
+  CONTAINER
+  MONEY
+  PAYMENT_CARD
+  PHONE
+  AGE_DOCUMENT
+  HAND
+  FACE
+  POSE
+  LABEL
+  EXPIRATION_DATE
+  DAMAGED_PACKAGE
+  BOX
+  PALLET
+  OTHER
+}
+
+enum SpeakerType {
+  CASHIER
+  CUSTOMER
+  SUPPLIER
+  EMPLOYEE
+  UNKNOWN
+  MULTIPLE
+}
+
+enum AudioSource {
+  CAMERA_AUDIO_RTSP
+  EXTERNAL_MICROPHONE_RTSP
+  EMBEDDED_VIDEO_AUDIO
+  UPLOADED_AUDIO
+  OTHER
+}
+
+enum ActionStatus {
+  DETECTED
+  CONFIRMED
+  REJECTED
+  NEEDS_REVIEW
+}
+
+enum ReconciliationStatus {
+  PENDING
+  PROCESSING
+  MATCHED
+  MISMATCH
+  NEEDS_REVIEW
+  FAILED
+}
+
+enum MatchStatus {
+  MATCHED
+  POSSIBLE_MATCH
+  TRANSFERRED_NOT_SCANNED
+  SCANNED_NOT_DETECTED
+  QUANTITY_MISMATCH
+  CONTAINER_MISMATCH
+  UNKNOWN
+}
+
+enum RuleDomain {
+  SALES
+  PAYMENT
+  SERVICE
+  RECEIVING
+  CAMERA_HEALTH
+  INTEGRATION
+}
+
+enum TriggerType {
+  ANALYTICS_EVENT
+  ACTION
+  SPEECH_EVENT
+  POS_OPERATION
+  RECEIPT
+  SESSION
+  RECONCILIATION
+  RECEIVING_SESSION
+  CAMERA_HEALTH
+  INTEGRATION_ERROR
+}
+
+enum ViolationStatus {
+  NEW
+  IN_PROGRESS
+  CONFIRMED
+  REJECTED
+  FALSE_POSITIVE
+  CORRECTED
+  RESOLVED
+  ESCALATED_TO_MANAGER
+  ESCALATED_TO_HR
+  ESCALATED_TO_QUALITY_CONTROL
+  IGNORED
+}
+
+enum ViolationOperationType {
+  SALE
+  RETURN
+  CANCELLATION
+  VOID
+  RECEIVING
+  SERVICE
+  CAMERA
+  INTEGRATION
+}
+
+enum ReviewDecision {
+  CONFIRM
+  REJECT
+  FALSE_POSITIVE
+  REQUEST_MORE_INFORMATION
+  MARK_CORRECTED
+  ESCALATE
+  RESOLVE
+}
+
+enum EvidenceStatus {
+  REQUESTED
+  GENERATING
+  AVAILABLE
+  NOT_FOUND
+  CAMERA_UNAVAILABLE
+  RECORDING_ERROR
+  FAILED
+  EXPIRED
+  DELETED
+}
+
+enum NotificationStatus {
+  PENDING
+  DELIVERED
+  DISPLAYED
+  ACKNOWLEDGED
+  DISMISSED
+  CORRECTED
+  FAILED
+  EXPIRED
+}
+
+enum NotificationDisplayMode {
+  TOAST
+  BANNER
+  MODAL_NON_BLOCKING
+}
+
+enum CriterionResult {
+  PASSED
+  FAILED
+  NOT_REQUIRED
+  NOT_DETERMINED
+  MANUAL_REVIEW
+}
+
+enum ReceivingDocumentStatus {
+  EXPECTED
+  RECEIVING
+  COMPLETED
+  COMPLETED_WITH_DIFFERENCES
+  CANCELLED
+}
+
+enum ReceivingSessionStatus {
+  OPEN
+  PROCESSING
+  COMPLETED
+  COMPLETED_WITH_DIFFERENCES
+  NEEDS_REVIEW
+  CANCELLED
+}
+
+enum ReceivingItemStatus {
+  MATCHED
+  QUANTITY_MISMATCH
+  NOT_COUNTED
+  EXPIRATION_NOT_CHECKED
+  PACKAGE_NOT_CHECKED
+  DAMAGED
+  DAMAGED_NOT_SEPARATED
+  DIFFERENCE_NOT_RECORDED
+  UNKNOWN
+}
+
+enum IntegrationErrorStatus {
+  OPEN
+  RETRYING
+  RESOLVED
+  IGNORED
+  FAILED
+}
+
+enum ScheduledTaskStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum ReportStatus {
+  REQUESTED
+  GENERATING
+  READY
+  FAILED
+}
+
+model User {
+  id               String            @id @default(cuid())
+  email            String            @unique
+  passwordHash     String
+  firstName        String
+  lastName         String
+  role             UserRole
+  isActive         Boolean           @default(true)
+  lastLoginAt      DateTime?
+  refreshTokenHash String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  storeAccess      UserStoreAccess[]
+  cityAccess       UserCityAccess[]
+  auditLogs        AuditLog[]
+}
+
+model UserStoreAccess {
+  id        String   @id @default(cuid())
+  userId    String
+  storeId   String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, storeId])
+  @@index([storeId])
+}
+
+model UserCityAccess {
+  id        String   @id @default(cuid())
+  userId    String
+  city      String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, city])
+}
+
+model Store {
+  id         String            @id @default(cuid())
+  name       String
+  code       String            @unique
+  address    String
+  city       String
+  timezone   String            @default("Asia/Almaty")
+  isActive   Boolean           @default(true)
+  metadata   Json              @default("{}")
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  registers  Register[]
+  cameras    Camera[]
+  employees  Employee[]
+  userAccess UserStoreAccess[]
+}
+
+model Register {
+  id                        String   @id @default(cuid())
+  storeId                   String
+  name                      String
+  code                      String
+  registerNumber            Int
+  externalId                String?
+  workstationId             String?
+  notificationClientId      String?
+  allowMultipleOpenSessions Boolean  @default(false)
+  isActive                  Boolean  @default(true)
+  metadata                  Json     @default("{}")
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+  store                     Store    @relation(fields: [storeId], references: [id])
+
+  @@unique([storeId, code])
+  @@index([storeId])
+}
+
+model Camera {
+  id                      String       @id @default(cuid())
+  storeId                 String
+  registerId              String?
+  name                    String
+  code                    String       @unique
+  externalId              String?
+  locationType            LocationType
+  isActive                Boolean      @default(true)
+  videoEnabled            Boolean      @default(true)
+  videoRtspUrl            String?
+  videoAnalyticsStreamUrl String?
+  videoChannel            String?
+  videoSubType            String?
+  videoCodec              String?
+  configuredVideoFps      Int?
+  videoStatus             StreamStatus @default(UNKNOWN)
+  videoFps                Float?
+  videoLatencyMs          Int?
+  lastVideoFrameAt        DateTime?
+  audioEnabled            Boolean      @default(false)
+  audioRtspUrl            String?
+  audioAnalyticsStreamUrl String?
+  audioChannel            String?
+  audioSubType            String?
+  audioCodec              String?
+  audioSampleRate         Int?
+  audioChannels           Int?
+  audioStatus             StreamStatus @default(UNKNOWN)
+  audioBitrate            Int?
+  audioLatencyMs          Int?
+  lastAudioPacketAt       DateTime?
+  overallStatus           StreamStatus @default(UNKNOWN)
+  lastSeenAt              DateTime?
+  recognitionRoi          Json         @default("{}")
+  scanRoi                 Json         @default("{}")
+  customerRoi             Json         @default("{}")
+  cashierRoi              Json         @default("{}")
+  paymentRoi              Json         @default("{}")
+  receiptRoi              Json         @default("{}")
+  packagingRoi            Json         @default("{}")
+  receivingRoi            Json         @default("{}")
+  videoConfiguration      Json         @default("{}")
+  audioConfiguration      Json         @default("{}")
+  analyticsConfiguration  Json         @default("{}")
+  createdAt               DateTime     @default(now())
+  updatedAt               DateTime     @updatedAt
+  store                   Store        @relation(fields: [storeId], references: [id])
+
+  @@index([storeId, registerId])
+}
+
+model Employee {
+  id             String   @id @default(cuid())
+  storeId        String
+  externalId     String?  @unique
+  employeeNumber String
+  firstName      String
+  lastName       String
+  position       String
+  isActive       Boolean  @default(true)
+  metadata       Json     @default("{}")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  store          Store    @relation(fields: [storeId], references: [id])
+
+  @@index([storeId])
+}
+
+model Shift {
+  id         String      @id @default(cuid())
+  storeId    String
+  registerId String
+  employeeId String?
+  externalId String?
+  startedAt  DateTime
+  endedAt    DateTime?
+  status     ShiftStatus
+  metadata   Json        @default("{}")
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  @@index([storeId, registerId, employeeId, status])
+}
+
+model Receipt {
+  id                            String               @id @default(cuid())
+  storeId                       String
+  registerId                    String
+  employeeId                    String?
+  shiftId                       String?
+  checkoutSessionId             String?
+  externalId                    String               @unique
+  receiptNumber                 String
+  operationType                 ReceiptOperationType
+  status                        ReceiptStatus
+  openedAt                      DateTime
+  completedAt                   DateTime?
+  subtotalAmount                Decimal              @db.Decimal(14, 2)
+  discountAmount                Decimal              @db.Decimal(14, 2)
+  totalAmount                   Decimal              @db.Decimal(14, 2)
+  paidAmount                    Decimal              @db.Decimal(14, 2)
+  bonusAmount                   Decimal              @default(0) @db.Decimal(14, 2)
+  currency                      String               @default("KZT")
+  paymentMethod                 PaymentMethod
+  expectedChangeAmount          Decimal?             @db.Decimal(14, 2)
+  actualChangeAmount            Decimal?             @db.Decimal(14, 2)
+  customerAgeRestrictedPurchase Boolean              @default(false)
+  version                       Int                  @default(1)
+  originalReceiptId             String?
+  metadata                      Json                 @default("{}")
+  createdAt                     DateTime             @default(now())
+  updatedAt                     DateTime             @updatedAt
+  items                         ReceiptItem[]
+  payments                      Payment[]
+  versions                      ReceiptVersion[]
+
+  @@index([storeId, registerId, receiptNumber, completedAt])
+}
+
+model ReceiptVersion {
+  id         String   @id @default(cuid())
+  receiptId  String
+  version    Int
+  payload    Json
+  receivedAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+  receipt    Receipt  @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+
+  @@unique([receiptId, version])
+}
+
+model ReceiptItem {
+  id              String   @id @default(cuid())
+  receiptId       String
+  externalItemId  String?
+  productCode     String
+  barcode         String?
+  productName     String
+  categoryCode    String?
+  quantity        Decimal  @db.Decimal(14, 3)
+  unit            String
+  unitPrice       Decimal  @db.Decimal(14, 2)
+  discountAmount  Decimal  @default(0) @db.Decimal(14, 2)
+  totalAmount     Decimal  @db.Decimal(14, 2)
+  isContainer     Boolean  @default(false)
+  containerType   String?
+  isAgeRestricted Boolean  @default(false)
+  wasRemoved      Boolean  @default(false)
+  metadata        Json     @default("{}")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  receipt         Receipt  @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+
+  @@index([receiptId, productCode])
+}
+
+model Payment {
+  id             String        @id @default(cuid())
+  receiptId      String
+  externalId     String?
+  paymentMethod  PaymentMethod
+  amount         Decimal       @db.Decimal(14, 2)
+  receivedAmount Decimal?      @db.Decimal(14, 2)
+  changeAmount   Decimal?      @db.Decimal(14, 2)
+  status         PaymentStatus
+  occurredAt     DateTime
+  metadata       Json          @default("{}")
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  receipt        Receipt       @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+
+  @@index([receiptId])
+}
+
+model PosOperation {
+  id                String           @id @default(cuid())
+  storeId           String
+  registerId        String
+  employeeId        String?
+  shiftId           String?
+  receiptId         String?
+  checkoutSessionId String?
+  externalEventId   String           @unique
+  idempotencyKey    String?          @unique
+  operationType     PosOperationType
+  productCode       String?
+  barcode           String?
+  quantity          Decimal?         @db.Decimal(14, 3)
+  amount            Decimal?         @db.Decimal(14, 2)
+  occurredAt        DateTime
+  correlationId     String?
+  payload           Json
+  createdAt         DateTime         @default(now())
+
+  @@index([storeId, registerId, occurredAt, correlationId])
+}
+
+model CheckoutSession {
+  id                            String                @id @default(cuid())
+  storeId                       String
+  registerId                    String
+  cameraId                      String?
+  employeeId                    String?
+  shiftId                       String?
+  receiptId                     String?
+  externalOrderId               String?
+  correlationId                 String?
+  customerTrackId               String?
+  startedAt                     DateTime
+  endedAt                       DateTime?
+  lastActivityAt                DateTime
+  status                        CheckoutSessionStatus
+  customerWaitSeconds           Int?
+  cashierAbsentSeconds          Int?
+  interactionDurationSeconds    Int?
+  detectedProductCount          Int                   @default(0)
+  scannedProductCount           Int                   @default(0)
+  transferredProductCount       Int                   @default(0)
+  unmatchedDetectedProductCount Int                   @default(0)
+  unmatchedReceiptItemCount     Int                   @default(0)
+  totalAmount                   Decimal?              @db.Decimal(14, 2)
+  paidAmount                    Decimal?              @db.Decimal(14, 2)
+  expectedChangeAmount          Decimal?              @db.Decimal(14, 2)
+  actualChangeAmount            Decimal?              @db.Decimal(14, 2)
+  financialRiskAmount           Decimal?              @db.Decimal(14, 2)
+  serviceScore                  Float?
+  confidence                    Float?
+  metadata                      Json                  @default("{}")
+  createdAt                     DateTime              @default(now())
+  updatedAt                     DateTime              @updatedAt
+
+  @@index([storeId, registerId, status, correlationId])
+}
+
+model AnalyticsEvent {
+  id               String      @id @default(cuid())
+  storeId          String
+  registerId       String?
+  cameraId         String?
+  sessionId        String?
+  receiptId        String?
+  employeeId       String?
+  shiftId          String?
+  externalEventId  String      @unique
+  idempotencyKey   String?     @unique
+  eventType        String
+  source           String
+  mediaType        MediaType
+  occurredAt       DateTime
+  receivedAt       DateTime    @default(now())
+  confidence       Float?
+  frameTimestampMs BigInt?
+  audioTimestampMs BigInt?
+  trackId          String?
+  modelName        String?
+  modelVersion     String?
+  correlationId    String?
+  payload          Json
+  createdAt        DateTime    @default(now())
+  detections       Detection[]
+
+  @@index([storeId, registerId, cameraId, occurredAt, correlationId])
+}
+
+model Detection {
+  id               String         @id @default(cuid())
+  analyticsEventId String
+  storeId          String
+  registerId       String?
+  cameraId         String
+  sessionId        String?
+  receiptId        String?
+  detectionType    DetectionType
+  className        String
+  classId          String?
+  confidence       Float
+  trackId          String?
+  boundingBox      Json?
+  polygon          Json?
+  keypoints        Json?
+  attributes       Json           @default("{}")
+  detectedAt       DateTime
+  createdAt        DateTime       @default(now())
+  analyticsEvent   AnalyticsEvent @relation(fields: [analyticsEventId], references: [id], onDelete: Cascade)
+
+  @@index([storeId, cameraId, detectionType, detectedAt])
+}
+
+model SpeechEvent {
+  id                    String      @id @default(cuid())
+  analyticsEventId      String?
+  storeId               String
+  registerId            String?
+  cameraId              String
+  sessionId             String?
+  receiptId             String?
+  employeeId            String?
+  shiftId               String?
+  externalEventId       String      @unique
+  idempotencyKey        String?     @unique
+  startedAt             DateTime
+  endedAt               DateTime
+  speakerType           SpeakerType
+  language              String
+  text                  String
+  normalizedText        String?
+  confidence            Float?
+  words                 Json        @default("[]")
+  phrases               Json        @default("[]")
+  sentiment             String?
+  tone                  String?
+  audioSource           AudioSource
+  audioTimestampStartMs BigInt?
+  audioTimestampEndMs   BigInt?
+  modelName             String?
+  modelVersion          String?
+  correlationId         String?
+  metadata              Json        @default("{}")
+  createdAt             DateTime    @default(now())
+
+  @@index([storeId, registerId, cameraId, startedAt, correlationId])
+}
+
+model ActionType {
+  id              String          @id @default(cuid())
+  code            String          @unique
+  name            String
+  category        String
+  description     String
+  defaultSeverity Severity
+  isSystem        Boolean         @default(true)
+  isActive        Boolean         @default(true)
+  metadata        Json            @default("{}")
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  actions         CashierAction[]
+}
+
+model CashierAction {
+  id               String       @id @default(cuid())
+  storeId          String
+  registerId       String
+  cameraId         String?
+  sessionId        String?
+  receiptId        String?
+  shiftId          String?
+  employeeId       String?
+  actionTypeId     String
+  startedAt        DateTime
+  endedAt          DateTime?
+  confidence       Float?
+  status           ActionStatus
+  mediaType        MediaType
+  source           String
+  correlationId    String?
+  details          Json         @default("{}")
+  reviewedByUserId String?
+  reviewedAt       DateTime?
+  reviewComment    String?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  actionType       ActionType   @relation(fields: [actionTypeId], references: [id])
+
+  @@index([storeId, registerId, sessionId, startedAt])
+}
+
+model ActionEventLink {
+  id               String   @id @default(cuid())
+  actionId         String
+  analyticsEventId String
+  createdAt        DateTime @default(now())
+
+  @@unique([actionId, analyticsEventId])
+}
+
+model ActionSpeechEventLink {
+  id            String   @id @default(cuid())
+  actionId      String
+  speechEventId String
+  createdAt     DateTime @default(now())
+
+  @@unique([actionId, speechEventId])
+}
+
+model ActionPosOperationLink {
+  id             String   @id @default(cuid())
+  actionId       String
+  posOperationId String
+  createdAt      DateTime @default(now())
+
+  @@unique([actionId, posOperationId])
+}
+
+model SaleReconciliation {
+  id                               String               @id @default(cuid())
+  sessionId                        String
+  receiptId                        String
+  status                           ReconciliationStatus
+  startedAt                        DateTime             @default(now())
+  completedAt                      DateTime?
+  overallConfidence                Float?
+  detectedProductCount             Int                  @default(0)
+  transferredProductCount          Int                  @default(0)
+  scannedProductCount              Int                  @default(0)
+  receiptItemCount                 Int                  @default(0)
+  matchedProductCount              Int                  @default(0)
+  unmatchedTransferredProductCount Int                  @default(0)
+  unmatchedReceiptProductCount     Int                  @default(0)
+  detectedContainerCount           Int                  @default(0)
+  receiptContainerCount            Int                  @default(0)
+  unmatchedContainerCount          Int                  @default(0)
+  expectedPaymentMethod            String?
+  detectedPaymentMethod            String?
+  paymentMethodMatches             Boolean?
+  receiptTotalAmount               Decimal?             @db.Decimal(14, 2)
+  detectedPaidAmount               Decimal?             @db.Decimal(14, 2)
+  paymentDifferenceAmount          Decimal?             @db.Decimal(14, 2)
+  expectedChangeAmount             Decimal?             @db.Decimal(14, 2)
+  detectedChangeAmount             Decimal?             @db.Decimal(14, 2)
+  changeDifferenceAmount           Decimal?             @db.Decimal(14, 2)
+  financialRiskAmount              Decimal?             @db.Decimal(14, 2)
+  result                           Json                 @default("{}")
+  createdAt                        DateTime             @default(now())
+  updatedAt                        DateTime             @updatedAt
+  items                            ReconciliationItem[]
+
+  @@index([sessionId, receiptId, status])
+}
+
+model ReconciliationItem {
+  id                 String             @id @default(cuid())
+  reconciliationId   String
+  receiptItemId      String?
+  detectionId        String?
+  cashierActionId    String?
+  productCode        String?
+  detectedClassName  String?
+  receiptQuantity    Decimal?           @db.Decimal(14, 3)
+  detectedQuantity   Decimal?           @db.Decimal(14, 3)
+  matchStatus        MatchStatus
+  confidence         Float?
+  possibleRiskAmount Decimal?           @db.Decimal(14, 2)
+  details            Json               @default("{}")
+  createdAt          DateTime           @default(now())
+  reconciliation     SaleReconciliation @relation(fields: [reconciliationId], references: [id], onDelete: Cascade)
+}
+
+model Rule {
+  id                         String      @id @default(cuid())
+  storeId                    String?
+  registerId                 String?
+  name                       String
+  code                       String      @unique
+  description                String
+  domain                     RuleDomain
+  triggerType                TriggerType
+  triggerCode                String
+  condition                  Json
+  severity                   Severity
+  repeatable                 Boolean     @default(true)
+  cooldownSeconds            Int?
+  createEmployeeNotification Boolean     @default(false)
+  createManagerAlert         Boolean     @default(false)
+  requireEvidence            Boolean     @default(false)
+  isActive                   Boolean     @default(true)
+  createdAt                  DateTime    @default(now())
+  updatedAt                  DateTime    @updatedAt
+
+  @@index([domain, triggerType, triggerCode, isActive])
+}
+
+model Violation {
+  id                          String                 @id @default(cuid())
+  ruleId                      String
+  storeId                     String
+  registerId                  String?
+  cameraId                    String?
+  employeeId                  String?
+  shiftId                     String?
+  sessionId                   String?
+  receiptId                   String?
+  receivingSessionId          String?
+  actionId                    String?
+  analyticsEventId            String?
+  speechEventId               String?
+  reconciliationId            String?
+  operationType               ViolationOperationType
+  violationType               String
+  severity                    Severity
+  confidence                  Float?
+  title                       String
+  description                 String
+  occurredAt                  DateTime
+  status                      ViolationStatus        @default(NEW)
+  financialRiskAmount         Decimal?               @db.Decimal(14, 2)
+  assignedToUserId            String?
+  assignedDepartment          String?
+  reviewedByUserId            String?
+  reviewedAt                  DateTime?
+  resolutionComment           String?
+  correctedAt                 DateTime?
+  correctionConfirmedByUserId String?
+  details                     Json                   @default("{}")
+  createdAt                   DateTime               @default(now())
+  updatedAt                   DateTime               @updatedAt
+  reviews                     ViolationReview[]
+  evidence                    EvidenceClip[]
+  notifications               EmployeeNotification[]
+
+  @@index([storeId, registerId, status, severity, occurredAt])
+}
+
+model ViolationReview {
+  id             String          @id @default(cuid())
+  violationId    String
+  reviewerUserId String
+  previousStatus ViolationStatus
+  newStatus      ViolationStatus
+  decision       ReviewDecision
+  comment        String
+  createdAt      DateTime        @default(now())
+  violation      Violation       @relation(fields: [violationId], references: [id], onDelete: Cascade)
+}
+
+model EvidenceClip {
+  id                 String         @id @default(cuid())
+  storeId            String
+  registerId         String?
+  cameraId           String
+  sessionId          String?
+  receiptId          String?
+  receivingSessionId String?
+  violationId        String?
+  mediaType          MediaType
+  storageProvider    String
+  storageKey         String
+  playbackUrl        String?
+  eventOccurredAt    DateTime
+  clipStartAt        DateTime
+  clipEndAt          DateTime
+  secondsBefore      Int
+  secondsAfter       Int
+  durationSeconds    Int
+  status             EvidenceStatus
+  errorCode          String?
+  errorMessage       String?
+  expiresAt          DateTime?
+  fileSizeBytes      BigInt?
+  checksum           String?
+  metadata           Json           @default("{}")
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  violation          Violation?     @relation(fields: [violationId], references: [id])
+
+  @@index([storeId, cameraId, status, eventOccurredAt])
+}
+
+model EmployeeNotification {
+  id             String                  @id @default(cuid())
+  storeId        String
+  registerId     String
+  employeeId     String?
+  sessionId      String?
+  receiptId      String?
+  violationId    String?
+  type           String
+  title          String
+  message        String
+  priority       Severity
+  displayMode    NotificationDisplayMode
+  status         NotificationStatus      @default(PENDING)
+  createdAt      DateTime                @default(now())
+  deliveredAt    DateTime?
+  displayedAt    DateTime?
+  acknowledgedAt DateTime?
+  dismissedAt    DateTime?
+  correctedAt    DateTime?
+  expiresAt      DateTime?
+  metadata       Json                    @default("{}")
+  updatedAt      DateTime                @updatedAt
+  violation      Violation?              @relation(fields: [violationId], references: [id])
+
+  @@index([storeId, registerId, status, createdAt])
+}
+
+model ServiceStandard {
+  id          String                     @id @default(cuid())
+  storeId     String?
+  name        String
+  description String
+  isActive    Boolean                    @default(true)
+  createdAt   DateTime                   @default(now())
+  updatedAt   DateTime                   @updatedAt
+  criteria    ServiceStandardCriterion[]
+}
+
+model ServiceStandardCriterion {
+  id                     String          @id @default(cuid())
+  serviceStandardId      String
+  name                   String
+  code                   String
+  description            String
+  category               String
+  weight                 Float
+  sourceType             String
+  actionTypeCode         String?
+  ruleId                 String?
+  applicabilityCondition Json?
+  configuration          Json            @default("{}")
+  sortOrder              Int
+  isActive               Boolean         @default(true)
+  createdAt              DateTime        @default(now())
+  updatedAt              DateTime        @updatedAt
+  standard               ServiceStandard @relation(fields: [serviceStandardId], references: [id], onDelete: Cascade)
+}
+
+model ServiceEvaluation {
+  id                         String                @id @default(cuid())
+  serviceStandardId          String
+  sessionId                  String
+  receiptId                  String?
+  employeeId                 String?
+  shiftId                    String?
+  totalScore                 Float
+  maximumScore               Float
+  percentage                 Float
+  applicableCriteriaCount    Int
+  passedCriteriaCount        Int
+  failedCriteriaCount        Int
+  notRequiredCriteriaCount   Int
+  notDeterminedCriteriaCount Int
+  evaluatedAt                DateTime              @default(now())
+  result                     String
+  createdAt                  DateTime              @default(now())
+  updatedAt                  DateTime              @updatedAt
+  criteria                   CriterionEvaluation[]
+
+  @@index([sessionId, employeeId])
+}
+
+model CriterionEvaluation {
+  id                  String            @id @default(cuid())
+  serviceEvaluationId String
+  criterionId         String
+  result              CriterionResult
+  score               Float
+  maximumScore        Float
+  confidence          Float?
+  evidence            Json              @default("{}")
+  details             Json              @default("{}")
+  createdAt           DateTime          @default(now())
+  evaluation          ServiceEvaluation @relation(fields: [serviceEvaluationId], references: [id], onDelete: Cascade)
+}
+
+model Supplier {
+  id         String   @id @default(cuid())
+  externalId String?
+  name       String
+  code       String?
+  isActive   Boolean  @default(true)
+  metadata   Json     @default("{}")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model ReceivingDocument {
+  id                    String                  @id @default(cuid())
+  storeId               String
+  supplierId            String?
+  externalId            String                  @unique
+  documentNumber        String
+  documentDate          DateTime
+  status                ReceivingDocumentStatus
+  expectedTotalQuantity Decimal                 @db.Decimal(14, 3)
+  actualTotalQuantity   Decimal?                @db.Decimal(14, 3)
+  discrepancyQuantity   Decimal?                @db.Decimal(14, 3)
+  metadata              Json                    @default("{}")
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+  items                 ReceivingDocumentItem[]
+}
+
+model ReceivingDocumentItem {
+  id                  String            @id @default(cuid())
+  receivingDocumentId String
+  externalItemId      String?
+  productCode         String
+  barcode             String?
+  productName         String
+  expectedQuantity    Decimal           @db.Decimal(14, 3)
+  actualQuantity      Decimal?          @db.Decimal(14, 3)
+  unit                String
+  expirationDate      DateTime?
+  batchNumber         String?
+  damagedQuantity     Decimal?          @db.Decimal(14, 3)
+  discrepancyQuantity Decimal?          @db.Decimal(14, 3)
+  metadata            Json              @default("{}")
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  document            ReceivingDocument @relation(fields: [receivingDocumentId], references: [id], onDelete: Cascade)
+}
+
+model ReceivingSession {
+  id                             String                  @id @default(cuid())
+  receivingDocumentId            String
+  storeId                        String
+  cameraId                       String?
+  employeeId                     String?
+  startedAt                      DateTime
+  endedAt                        DateTime?
+  status                         ReceivingSessionStatus
+  countPerformed                 Boolean                 @default(false)
+  expirationCheckPerformed       Boolean                 @default(false)
+  packageIntegrityCheckPerformed Boolean                 @default(false)
+  damagedGoodsSeparated          Boolean                 @default(false)
+  discrepancyRecorded            Boolean                 @default(false)
+  expectedQuantity               Decimal                 @db.Decimal(14, 3)
+  detectedQuantity               Decimal?                @db.Decimal(14, 3)
+  confirmedQuantity              Decimal?                @db.Decimal(14, 3)
+  discrepancyQuantity            Decimal?                @db.Decimal(14, 3)
+  minimumExpectedDurationSeconds Int?
+  actualDurationSeconds          Int?
+  tooFastSuspected               Boolean                 @default(false)
+  overallConfidence              Float?
+  metadata                       Json                    @default("{}")
+  createdAt                      DateTime                @default(now())
+  updatedAt                      DateTime                @updatedAt
+  analyses                       ReceivingItemAnalysis[]
+
+  @@index([storeId, status, startedAt])
+}
+
+model ReceivingItemAnalysis {
+  id                      String              @id @default(cuid())
+  receivingSessionId      String
+  receivingDocumentItemId String?
+  productCode             String?
+  detectedClassName       String?
+  expectedQuantity        Decimal?            @db.Decimal(14, 3)
+  detectedQuantity        Decimal?            @db.Decimal(14, 3)
+  confirmedQuantity       Decimal?            @db.Decimal(14, 3)
+  expirationDateChecked   Boolean             @default(false)
+  packageIntegrityChecked Boolean             @default(false)
+  damaged                 Boolean             @default(false)
+  damagedSeparated        Boolean             @default(false)
+  discrepancyRecorded     Boolean             @default(false)
+  confidence              Float?
+  status                  ReceivingItemStatus
+  details                 Json                @default("{}")
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
+  session                 ReceivingSession    @relation(fields: [receivingSessionId], references: [id], onDelete: Cascade)
+}
+
+model IntegrationEvent {
+  id                  String   @id @default(cuid())
+  storeId             String?
+  registerId          String?
+  employeeId          String?
+  sessionId           String?
+  receiptId           String?
+  receivingDocumentId String?
+  externalEventId     String   @unique
+  idempotencyKey      String?  @unique
+  source              String
+  eventType           String
+  occurredAt          DateTime
+  receivedAt          DateTime @default(now())
+  correlationId       String?
+  payload             Json
+  createdAt           DateTime @default(now())
+}
+
+model IntegrationError {
+  id               String                 @id @default(cuid())
+  storeId          String?
+  registerId       String?
+  cameraId         String?
+  source           String
+  errorType        String
+  externalEntityId String?
+  severity         Severity
+  occurredAt       DateTime
+  resolvedAt       DateTime?
+  status           IntegrationErrorStatus
+  message          String
+  details          Json                   @default("{}")
+  retryCount       Int                    @default(0)
+  lastRetryAt      DateTime?
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+}
+
+model ApiKey {
+  id                 String    @id @default(cuid())
+  name               String
+  keyPrefix          String    @unique
+  keyHash            String
+  serviceType        String
+  isActive           Boolean   @default(true)
+  expiresAt          DateTime?
+  lastUsedAt         DateTime?
+  allowedStoreIds    String[]
+  allowedRegisterIds String[]
+  allowedCameraIds   String[]
+  permissions        String[]
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+}
+
+model ScheduledTask {
+  id          String              @id @default(cuid())
+  type        String
+  status      ScheduledTaskStatus @default(PENDING)
+  executeAt   DateTime
+  attempts    Int                 @default(0)
+  maxAttempts Int                 @default(5)
+  lockedAt    DateTime?
+  lockedBy    String?
+  payload     Json                @default("{}")
+  lastError   String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@index([status, executeAt])
+}
+
+model Report {
+  id              String       @id @default(cuid())
+  type            String
+  status          ReportStatus @default(REQUESTED)
+  filters         Json         @default("{}")
+  format          String
+  result          Json         @default("{}")
+  storageKey      String?
+  createdByUserId String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  apiKeyId   String?
+  action     String
+  entityType String?
+  entityId   String?
+  storeId    String?
+  ipAddress  String?
+  userAgent  String?
+  metadata   Json     @default("{}")
+  createdAt  DateTime @default(now())
+  user       User?    @relation(fields: [userId], references: [id])
+
+  @@index([action, entityType, createdAt])
+}
