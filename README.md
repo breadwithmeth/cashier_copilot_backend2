@@ -50,6 +50,13 @@ Use `x-api-key` for ingestion:
 
 Batch endpoints accept up to 500 records. Raw analytics events are immutable; receipt updates create `ReceiptVersion` history.
 
+Detailed integration guides:
+
+- [1C full guide](docs/1C_FULL_GUIDE.md)
+- [1C API contract](docs/1C_INTEGRATION.md)
+- [Python analytics service](docs/PYTHON_ANALYTICS_SERVICE.md)
+- [Frontend](docs/FRONTEND.md)
+
 ## Workflow
 
 Violations are created as suspicions with `NEW` status. They are never auto-confirmed and never assign penalties. Authorized users review with `/api/v1/violations/:id/review` or the confirm/reject/false-positive/corrected/escalate/resolve shortcuts. Review history is preserved.

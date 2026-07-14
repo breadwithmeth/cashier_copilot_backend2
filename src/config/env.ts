@@ -11,6 +11,8 @@ const schema = z.object({
   JWT_ACCESS_EXPIRES_IN: z.string().default('15m'),
   JWT_REFRESH_EXPIRES_IN: z.string().default('30d'),
   API_KEY_PEPPER: z.string().min(8),
+  ANALYTICS_API_KEY: z.string().min(16),
+  INTEGRATION_API_KEY: z.string().min(16),
   RTSP_ENCRYPTION_KEY: z.string().min(8),
   RTSP_CREDENTIALS_ENCRYPTION_ENABLED: z.coerce.boolean().default(true),
   AUDIO_VIDEO_CORRELATION_TOLERANCE_MS: z.coerce.number().default(3000),

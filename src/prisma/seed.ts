@@ -1,5 +1,6 @@
 import { PrismaClient, Severity, UserRole } from '@prisma/client';
-import { createRawApiKey, hashApiKey, hashPassword } from '../common/utils/security.js';
+import { env } from '../config/env.js';
+import { hashApiKey, hashPassword } from '../common/utils/security.js';
 
 const prisma = new PrismaClient();
 
@@ -99,17 +100,27 @@ async function main() {
     data: ['GREETING_DETECTED','UPSELL_DETECTED','PURCHASE_AMOUNT_ANNOUNCED','RECEIPT_GIVEN','GOODBYE_DETECTED'].map((code, index) => ({ serviceStandardId: standard.id, name: code, code, description: code, category: 'CONTACT', weight: 1, sourceType: 'ACTION', actionTypeCode: code, sortOrder: index })),
     skipDuplicates: true
   });
-  for (const [name, serviceType, permissions] of [
-    ['Analytics service', 'ANALYTICS_SERVICE', ['analytics:write']],
-    ['Integration service', 'INTEGRATION_SERVICE', ['integrations:write']]
+  for (const [name, serviceType, permissions, serviceKey] of [
+    ['Analytics service', 'ANALYTICS_SERVICE', ['analytics:write'], env.ANALYTICS_API_KEY],
+    ['Integration service', 'INTEGRATION_SERVICE', ['integrations:write'], env.INTEGRATION_API_KEY]
   ] as const) {
-    const raw = createRawApiKey(serviceType === 'ANALYTICS_SERVICE' ? 'analytics_key' : 'integration_key');
+    const raw = serviceKey;
+    const keyPrefix = raw.split('_').slice(0, 2).join('_');
     await prisma.apiKey.upsert({
-      where: { keyPrefix: raw.split('_').slice(0, 2).join('_') },
-      update: {},
-      create: { name, serviceType, keyPrefix: raw.split('_').slice(0, 2).join('_'), keyHash: hashApiKey(raw), permissions: [...permissions], allowedStoreIds: [store.id], allowedRegisterIds: [register.id], allowedCameraIds: [] }
+      where: { keyPrefix },
+      update: {
+        name,
+        serviceType,
+        keyHash: hashApiKey(raw),
+        permissions: [...permissions],
+        allowedStoreIds: [store.id],
+        allowedRegisterIds: [register.id],
+        allowedCameraIds: [],
+        isActive: true
+      },
+      create: { name, serviceType, keyPrefix, keyHash: hashApiKey(raw), permissions: [...permissions], allowedStoreIds: [store.id], allowedRegisterIds: [register.id], allowedCameraIds: [] }
     });
-    console.log(`${name} API key: ${raw}`);
+    console.log(`${name} API key loaded from env: ${keyPrefix}_***`);
   }
   console.log('Seeded users use password: Password123!');
 }
