@@ -250,6 +250,10 @@ GET /api/v1/cameras/:id
 POST /api/v1/cameras
 PATCH /api/v1/cameras/:id
 POST /api/v1/cameras/:id/stream-credentials
+POST /api/v1/cameras/:id/roi-reference-image
+GET  /api/v1/cameras/:id/roi-reference-image
+GET  /api/v1/cameras/:id/rois
+PATCH /api/v1/cameras/:id/rois
 ```
 
 Обычные camera endpoints маскируют RTSP:
@@ -262,6 +266,111 @@ POST /api/v1/cameras/:id/stream-credentials
 ```
 
 `POST /api/v1/cameras/:id/stream-credentials` возвращает реальные URL и создает audit log. Показывать этот экран только администраторам.
+
+### ROI разметка камеры
+
+Фронтенд должен позволять разметить на reference image три типа зон:
+
+- `cashierRoi` - зона кассира.
+- `scanRoi` - зона сканера/сканирования.
+- `customerRoi` - зона покупателя.
+
+Картинку обычно загружает Python analytics-сервис из видеопотока. Администратор также может загрузить ее вручную:
+
+```http
+POST /api/v1/cameras/:id/roi-reference-image
+Authorization: Bearer <accessToken>
+Content-Type: multipart/form-data
+```
+
+Form fields:
+
+```text
+file: image/jpeg | image/png | image/webp
+width: optional number
+height: optional number
+capturedAt: optional ISO datetime
+```
+
+Получить картинку:
+
+```http
+GET /api/v1/cameras/:id/roi-reference-image
+Authorization: Bearer <accessToken>
+```
+
+Получить текущую разметку:
+
+```http
+GET /api/v1/cameras/:id/rois
+Authorization: Bearer <accessToken>
+```
+
+Сохранить полигоны:
+
+```http
+PATCH /api/v1/cameras/:id/rois
+Authorization: Bearer <accessToken>
+Content-Type: application/json
+```
+
+```json
+{
+  "image": {
+    "id": "image_id",
+    "width": 1920,
+    "height": 1080,
+    "capturedAt": "2026-07-14T10:00:00.000Z"
+  },
+  "cashierRoi": [
+    {
+      "label": "cashier-main",
+      "points": [
+        { "x": 0.12, "y": 0.18 },
+        { "x": 0.38, "y": 0.18 },
+        { "x": 0.39, "y": 0.78 },
+        { "x": 0.1, "y": 0.8 }
+      ],
+      "metadata": {}
+    }
+  ],
+  "scanRoi": [
+    {
+      "label": "scanner",
+      "points": [
+        { "x": 0.42, "y": 0.44 },
+        { "x": 0.58, "y": 0.44 },
+        { "x": 0.58, "y": 0.62 },
+        { "x": 0.42, "y": 0.62 }
+      ],
+      "metadata": {}
+    }
+  ],
+  "customerRoi": [
+    {
+      "label": "customer-area",
+      "points": [
+        { "x": 0.62, "y": 0.15 },
+        { "x": 0.96, "y": 0.15 },
+        { "x": 0.96, "y": 0.9 },
+        { "x": 0.62, "y": 0.9 }
+      ],
+      "metadata": {}
+    }
+  ]
+}
+```
+
+Координаты нормализованные: `0..1`, где `x=0,y=0` - левый верхний угол изображения, `x=1,y=1` - правый нижний.
+
+UI-рекомендации:
+
+- Хранить полигоны в normalized coordinates, а не в пикселях.
+- При изменении размера canvas пересчитывать только отображение.
+- Требовать минимум 3 точки на polygon.
+- Разрешить несколько полигонов на одну ROI-группу.
+- Перед сохранением валидировать, что точки не выходят за `0..1`.
+- Показывать отдельные цвета для `cashierRoi`, `scanRoi`, `customerRoi`.
 
 ### Employees and shifts
 
@@ -521,4 +630,3 @@ type ListState<T> = {
 - Всегда показывать review history в карточке нарушения.
 - Все destructive/workflow actions подтверждать через modal.
 - Логировать request id из ответа/ошибки, если он добавлен reverse proxy.
-

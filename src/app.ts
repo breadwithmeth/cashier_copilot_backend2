@@ -7,6 +7,7 @@ import rateLimit from '@fastify/rate-limit';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import websocket from '@fastify/websocket';
+import multipart from '@fastify/multipart';
 import { validatorCompiler, serializerCompiler, jsonSchemaTransform } from 'fastify-type-provider-zod';
 import { env } from './config/env.js';
 import { prisma } from './common/services/prisma.js';
@@ -21,6 +22,7 @@ import { registerDashboardRoutes } from './modules/dashboard/routes.js';
 import { registerTimelineRoutes } from './modules/timeline/routes.js';
 import { registerHealthRoutes } from './modules/health/routes.js';
 import { registerReportRoutes } from './modules/reports/routes.js';
+import { registerCameraRoiRoutes } from './modules/cameras/roi-routes.js';
 
 export async function buildApp() {
   const app = Fastify({
@@ -35,6 +37,12 @@ export async function buildApp() {
   await app.register(rateLimit, { max: 300, timeWindow: '1 minute' });
   await app.register(sensible);
   await app.register(websocket);
+  await app.register(multipart, {
+    limits: {
+      fileSize: 15 * 1024 * 1024,
+      files: 1
+    }
+  });
   await app.register(jwt, { secret: env.JWT_ACCESS_SECRET });
   await app.register(swagger, {
     openapi: {
@@ -60,6 +68,7 @@ export async function buildApp() {
   registerDashboardRoutes(app);
   registerTimelineRoutes(app);
   registerReportRoutes(app);
+  registerCameraRoiRoutes(app);
   app.addHook('onClose', async () => prisma.$disconnect());
   return app;
 }

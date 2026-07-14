@@ -86,6 +86,92 @@ Authorization: Bearer <admin JWT>
 
 Этот вызов audit-логируется. Не логируйте raw RTSP URL в Python-сервисе.
 
+## Загрузка reference image для ROI-разметки
+
+Python-сервис может загрузить кадр с камеры, чтобы фронтенд потом разметил на нем зоны:
+
+- `cashierRoi`
+- `scanRoi`
+- `customerRoi`
+
+Endpoint:
+
+```http
+POST /api/v1/analytics/cameras/:cameraCode/roi-reference-image
+x-api-key: <analytics_api_key>
+Content-Type: multipart/form-data
+```
+
+Form fields:
+
+```text
+file: required image/jpeg | image/png | image/webp
+width: optional frame width
+height: optional frame height
+capturedAt: optional ISO datetime
+```
+
+Пример Python:
+
+```python
+from datetime import datetime, timezone
+import requests
+
+BASE_URL = "http://localhost:3000/api/v1"
+API_KEY = "analytics_key_REPLACE_ME"
+
+def upload_roi_reference_image(camera_code: str, image_path: str, width: int, height: int) -> dict:
+    with open(image_path, "rb") as image_file:
+        response = requests.post(
+            f"{BASE_URL}/analytics/cameras/{camera_code}/roi-reference-image",
+            headers={"x-api-key": API_KEY},
+            files={"file": ("reference.jpg", image_file, "image/jpeg")},
+            data={
+                "width": str(width),
+                "height": str(height),
+                "capturedAt": datetime.now(timezone.utc).isoformat(),
+            },
+            timeout=15,
+        )
+    response.raise_for_status()
+    return response.json()
+```
+
+Ответ:
+
+```json
+{
+  "id": "image_id",
+  "cameraId": "camera_id",
+  "cameraCode": "cam10",
+  "storageKey": "camera_id/image_id.jpg",
+  "filename": "reference.jpg",
+  "mimeType": "image/jpeg",
+  "width": 1920,
+  "height": 1080,
+  "capturedAt": "2026-07-14T10:00:00.000Z",
+  "uploadedAt": "2026-07-14T10:00:01.000Z",
+  "uploadedBy": "analytics_service",
+  "url": "/api/v1/cameras/camera_id/roi-reference-image"
+}
+```
+
+После загрузки frontend получает изображение через protected endpoint:
+
+```http
+GET /api/v1/cameras/:id/roi-reference-image
+Authorization: Bearer <accessToken>
+```
+
+И сохраняет полигоны:
+
+```http
+PATCH /api/v1/cameras/:id/rois
+Authorization: Bearer <accessToken>
+```
+
+Координаты ROI всегда нормализованные `0..1`, а не пиксельные. Python-сервис при чтении ROI должен умножать `x` на текущую ширину кадра, `y` на текущую высоту кадра.
+
 ## Camera model для analytics
 
 Важные поля:
@@ -684,4 +770,3 @@ send_video_event({
 - Speech events включают `startedAt` и `endedAt`.
 - Evidence clips используют protected/signed playback URL.
 - High-risk detections не трактуются как подтвержденное нарушение на стороне Python.
-
