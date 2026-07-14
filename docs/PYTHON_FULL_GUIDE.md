@@ -506,6 +506,15 @@ POST /api/v1/analytics/audio/events/batch
 }
 ```
 
+Когда `speakerType = CASHIER`, backend автоматически проверяет `text` на запрещенную лексику. Если найден мат:
+
+- в `SpeechEvent.phrases` добавляется `PROFANITY_DETECTED`;
+- создается `CashierAction` с action type `PROFANITY_DETECTED`;
+- создается violation `profanity-detected` со статусом `NEW`;
+- для кассы создается employee notification, если правило активно.
+
+Python-сервису не нужно самому подтверждать нарушение. Он должен отправить обычный транскрипт, а backend выполнит проверку.
+
 ## 19. Audio classification endpoint
 
 Для звуков без текста:
@@ -1074,4 +1083,3 @@ curl -X POST http://localhost:3000/api/v1/analytics/cameras/cam10/roi-reference-
 - Evidence playback URL защищен.
 - High-risk detection не подтверждается на стороне Python.
 - При недоступности backend события не теряются.
-

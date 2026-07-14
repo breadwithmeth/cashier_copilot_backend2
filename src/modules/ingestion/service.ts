@@ -5,6 +5,7 @@ import { prisma } from '../../common/services/prisma.js';
 import { requireApiPermission } from '../../common/guards/access.js';
 import { HttpError } from '../../common/errors/http-error.js';
 import { HIGH_RISK_MESSAGES } from '../../config/constants.js';
+import { detectProfanity } from '../../common/utils/profanity.js';
 
 const batch = <T extends z.ZodTypeAny>(item: T) => z.object({ records: z.array(item).min(1).max(500) });
 const receiptItem = z.object({
@@ -118,6 +119,7 @@ async function createViolationFromRule(code: string, data: any) {
       employeeId: data.employeeId,
       sessionId: data.sessionId,
       receiptId: data.receiptId,
+      actionId: data.actionId,
       analyticsEventId: data.analyticsEventId,
       speechEventId: data.speechEventId,
       reconciliationId: data.reconciliationId,
@@ -222,9 +224,89 @@ async function ingestVideo(input: z.infer<typeof videoEventInput>) {
 
 async function ingestAudio(input: z.infer<typeof audioEventInput>) {
   const event = await ingestVideo({ ...input, source: input.source ?? 'speech', payload: input.payload });
+  const profanity = detectProfanity(input.text);
   const speech = await prisma.speechEvent.create({
-    data: { analyticsEventId: event.id, storeId: event.storeId, registerId: event.registerId, cameraId: event.cameraId!, sessionId: event.sessionId, externalEventId: input.externalEventId, idempotencyKey: input.idempotencyKey, startedAt: input.startedAt, endedAt: input.endedAt, speakerType: input.speakerType, language: input.language, text: input.text, normalizedText: input.text.toLowerCase(), confidence: input.confidence, words: input.words, phrases: [], audioSource: input.audioSource, correlationId: input.correlationId, metadata: input.metadata }
+    data: {
+      analyticsEventId: event.id,
+      storeId: event.storeId,
+      registerId: event.registerId,
+      cameraId: event.cameraId!,
+      sessionId: event.sessionId,
+      externalEventId: input.externalEventId,
+      idempotencyKey: input.idempotencyKey,
+      startedAt: input.startedAt,
+      endedAt: input.endedAt,
+      speakerType: input.speakerType,
+      language: input.language,
+      text: input.text,
+      normalizedText: profanity.normalizedText,
+      confidence: input.confidence,
+      words: input.words,
+      phrases: profanity.detected ? ['PROFANITY_DETECTED'] : [],
+      audioSource: input.audioSource,
+      correlationId: input.correlationId,
+      metadata: {
+        ...input.metadata,
+        profanity: profanity.detected
+          ? {
+              detected: true,
+              matches: profanity.matches
+            }
+          : undefined
+      }
+    }
   });
+  if (profanity.detected && input.speakerType === 'CASHIER') {
+    const actionType = await prisma.actionType.findUnique({ where: { code: 'PROFANITY_DETECTED' } });
+    const action = actionType
+      ? await prisma.cashierAction.create({
+          data: {
+            storeId: event.storeId,
+            registerId: event.registerId!,
+            cameraId: event.cameraId,
+            sessionId: event.sessionId,
+            receiptId: event.receiptId,
+            shiftId: event.shiftId,
+            employeeId: event.employeeId,
+            actionTypeId: actionType.id,
+            startedAt: input.startedAt,
+            endedAt: input.endedAt,
+            confidence: input.confidence,
+            status: 'NEEDS_REVIEW',
+            mediaType: 'AUDIO',
+            source: input.source,
+            correlationId: input.correlationId,
+            details: {
+              speechEventId: speech.id,
+              normalizedText: profanity.normalizedText,
+              matches: profanity.matches
+            }
+          }
+        })
+      : null;
+    if (action) {
+      await prisma.actionSpeechEventLink.create({ data: { actionId: action.id, speechEventId: speech.id } });
+    }
+    await createViolationFromRule('profanity-detected', {
+      storeId: event.storeId,
+      registerId: event.registerId,
+      cameraId: event.cameraId,
+      sessionId: event.sessionId,
+      receiptId: event.receiptId,
+      employeeId: event.employeeId,
+      shiftId: event.shiftId,
+      speechEventId: speech.id,
+      analyticsEventId: event.id,
+      actionId: action?.id,
+      operationType: 'SERVICE',
+      confidence: input.confidence,
+      occurredAt: input.startedAt,
+      details: {
+        normalizedText: profanity.normalizedText,
+        matches: profanity.matches
+      }
+    });
+  }
   return speech;
 }
 

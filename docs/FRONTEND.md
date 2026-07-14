@@ -525,6 +525,8 @@ markDelivered=true
 
 Эти два endpoint специально открыты без JWT/API key для кассового экрана. Остальные notification workflow endpoints, включая acknowledge/dismiss/corrected, требуют авторизацию.
 
+Если в речи кассира найден мат, уведомление придет с `type = profanity-detected`, а внутри `violation.violationType` также будет `profanity-detected`.
+
 ### Workstation WebSocket
 
 ```text

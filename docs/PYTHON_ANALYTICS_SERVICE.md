@@ -341,6 +341,8 @@ Payload:
 }
 ```
 
+Для `speakerType = CASHIER` backend автоматически проверяет `text` на мат. При срабатывании создается `PROFANITY_DETECTED` action, violation `profanity-detected` и уведомление для кассы.
+
 ## Audio classifications
 
 Endpoint:
