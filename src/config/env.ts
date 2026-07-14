@@ -30,8 +30,7 @@ const schema = z.object({
   INTEGRATION_ERROR_RETENTION_DAYS: z.coerce.number().default(180),
   ANALYTICS_WORKER_BASE_URL: z.string().url(),
   ANALYTICS_WORKER_API_KEY: z.string(),
-  LOG_LEVEL: z.string().default('info'),
-  CORS_ORIGINS: z.string().default('')
+  LOG_LEVEL: z.string().default('info')
 });
 
 export const env = schema.parse(process.env);
