@@ -40,6 +40,9 @@ const rules = [
 ] as const;
 
 async function main() {
+  if (!env.ADMIN_PASSWORD) {
+    throw new Error('ADMIN_PASSWORD is required when running prisma seed');
+  }
   const store = await prisma.store.upsert({
     where: { code: 'tolstogo-90' },
     update: {},
