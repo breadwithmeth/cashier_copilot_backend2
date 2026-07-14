@@ -62,6 +62,53 @@ async function findCameraByCode(code: string) {
 }
 
 export function registerCameraRoiRoutes(app: FastifyInstance) {
+  app.get('/api/v1/analytics/cameras/:cameraCode/rois', async (request) => {
+    requireApiPermission(request, 'analytics:write');
+    const { cameraCode } = z.object({ cameraCode: z.string() }).parse(request.params);
+    const camera = await findCameraByCode(cameraCode);
+    const apiKey = request.apiKeyContext;
+    if (apiKey?.allowedCameraIds.length && !apiKey.allowedCameraIds.includes(camera.id)) {
+      throw new HttpError(403, 'API key camera access denied', 'CAMERA_ACCESS_DENIED');
+    }
+    if (apiKey?.allowedStoreIds.length && !apiKey.allowedStoreIds.includes(camera.storeId)) {
+      throw new HttpError(403, 'API key store access denied', 'STORE_ACCESS_DENIED');
+    }
+    const [store, register] = await Promise.all([
+      prisma.store.findUnique({ where: { id: camera.storeId }, select: { id: true, code: true, name: true, city: true } }),
+      camera.registerId
+        ? prisma.register.findUnique({ where: { id: camera.registerId }, select: { id: true, code: true, name: true, registerNumber: true } })
+        : null
+    ]);
+    return {
+      camera: {
+        id: camera.id,
+        code: camera.code,
+        name: camera.name,
+        locationType: camera.locationType,
+        videoEnabled: camera.videoEnabled,
+        audioEnabled: camera.audioEnabled,
+        configuredVideoFps: camera.configuredVideoFps,
+        videoStatus: camera.videoStatus,
+        audioStatus: camera.audioStatus,
+        overallStatus: camera.overallStatus
+      },
+      store,
+      register,
+      referenceImage: publicImageMetadata(camera),
+      rois: {
+        cashierRoi: camera.cashierRoi,
+        scanRoi: camera.scanRoi,
+        customerRoi: camera.customerRoi,
+        recognitionRoi: camera.recognitionRoi,
+        paymentRoi: camera.paymentRoi,
+        receiptRoi: camera.receiptRoi,
+        packagingRoi: camera.packagingRoi,
+        receivingRoi: camera.receivingRoi
+      },
+      updatedAt: camera.updatedAt
+    };
+  });
+
   app.post('/api/v1/analytics/cameras/:cameraCode/roi-reference-image', async (request) => {
     requireApiPermission(request, 'analytics:write');
     const { cameraCode } = z.object({ cameraCode: z.string() }).parse(request.params);

@@ -29,8 +29,8 @@ Content-Type: application/json
 
 ```json
 {
-  "email": "admin@example.com",
-  "password": "Password123!"
+  "email": "admin@gradusy24.kz",
+  "password": "Oblong3-Delirious0-Washcloth1-Moonstone5-Handsfree3"
 }
 ```
 
@@ -40,9 +40,9 @@ Content-Type: application/json
 {
   "user": {
     "id": "user_id",
-    "email": "admin@example.com",
-    "firstName": "ADMIN",
-    "lastName": "User",
+    "email": "admin@gradusy24.kz",
+    "firstName": "Admin",
+    "lastName": "Gradusy24",
     "role": "ADMIN",
     "isActive": true,
     "lastLoginAt": "2026-07-13T17:00:00.000Z",

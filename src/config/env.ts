@@ -10,6 +10,8 @@ const schema = z.object({
   JWT_REFRESH_SECRET: z.string().min(8),
   JWT_ACCESS_EXPIRES_IN: z.string().default('15m'),
   JWT_REFRESH_EXPIRES_IN: z.string().default('30d'),
+  ADMIN_EMAIL: z.string().email().default('admin@gradusy24.kz'),
+  ADMIN_PASSWORD: z.string().min(12),
   API_KEY_PEPPER: z.string().min(8),
   ANALYTICS_API_KEY: z.string().min(16),
   INTEGRATION_API_KEY: z.string().min(16),

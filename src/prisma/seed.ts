@@ -1,4 +1,4 @@
-import { PrismaClient, Severity, UserRole } from '@prisma/client';
+import { PrismaClient, Severity } from '@prisma/client';
 import { env } from '../config/env.js';
 import { hashApiKey, hashPassword } from '../common/utils/security.js';
 
@@ -39,14 +39,6 @@ const rules = [
   ['evidence-unavailable','Evidence unavailable','evidence_unavailable','MEDIUM','INTEGRATION']
 ] as const;
 
-async function user(role: UserRole, email: string) {
-  return prisma.user.upsert({
-    where: { email },
-    update: {},
-    create: { email, passwordHash: await hashPassword('Password123!'), firstName: role, lastName: 'User', role }
-  });
-}
-
 async function main() {
   const store = await prisma.store.upsert({
     where: { code: 'tolstogo-90' },
@@ -74,18 +66,23 @@ async function main() {
     create: { storeId: store.id, externalId: 'employee-45', employeeNumber: '45', firstName: 'Aigerim', lastName: 'Cashier', position: 'Cashier' }
   });
   await prisma.shift.create({ data: { storeId: store.id, registerId: register.id, employeeId: employee.id, startedAt: new Date(), status: 'ACTIVE' } });
-  const seededUsers = await Promise.all([
-    user('SUPER_ADMIN', 'superadmin@example.com'),
-    user('ADMIN', 'admin@example.com'),
-    user('OPERATIONS_DIRECTOR', 'ops@example.com'),
-    user('STORE_MANAGER', 'manager@example.com'),
-    user('QUALITY_CONTROL', 'qc@example.com'),
-    user('HR', 'hr@example.com'),
-    user('EMPLOYEE', 'employee@example.com')
-  ]);
-  for (const u of seededUsers) {
-    await prisma.userStoreAccess.upsert({ where: { userId_storeId: { userId: u.id, storeId: store.id } }, update: {}, create: { userId: u.id, storeId: store.id } });
-  }
+  await prisma.$transaction(async (tx) => {
+    await tx.auditLog.updateMany({ where: { userId: { not: null } }, data: { userId: null } });
+    await tx.userStoreAccess.deleteMany({});
+    await tx.userCityAccess.deleteMany({});
+    await tx.user.deleteMany({});
+  });
+  const admin = await prisma.user.create({
+    data: {
+      email: env.ADMIN_EMAIL,
+      passwordHash: await hashPassword(env.ADMIN_PASSWORD),
+      firstName: 'Admin',
+      lastName: 'Gradusy24',
+      role: 'ADMIN',
+      isActive: true
+    }
+  });
+  await prisma.userStoreAccess.create({ data: { userId: admin.id, storeId: store.id } });
   for (const code of actionCodes) {
     await prisma.actionType.upsert({ where: { code }, update: {}, create: { code, name: code.replaceAll('_', ' '), category: code.split('_')[0], description: code.replaceAll('_', ' '), defaultSeverity: Severity.LOW } });
   }
@@ -123,7 +120,7 @@ async function main() {
     });
     console.log(`${name} API key loaded from env: ${keyPrefix}_***`);
   }
-  console.log('Seeded users use password: Password123!');
+  console.log(`Seeded admin user: ${env.ADMIN_EMAIL}`);
 }
 
 main().finally(() => prisma.$disconnect());

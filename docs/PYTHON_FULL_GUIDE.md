@@ -296,6 +296,63 @@ customerRoi
 
 Координаты всегда нормализованные `0..1`.
 
+Python-сервис получает ROI по `cameraCode` через API key:
+
+```http
+GET /api/v1/analytics/cameras/:cameraCode/rois
+x-api-key: <analytics api key>
+```
+
+Пример:
+
+```bash
+curl "http://localhost:3020/api/v1/analytics/cameras/cam10/rois" \
+  -H "x-api-key: analytics_key_REPLACE_ME"
+```
+
+Ответ:
+
+```json
+{
+  "camera": {
+    "id": "camera_id",
+    "code": "cam10",
+    "name": "Checkout camera",
+    "locationType": "CHECKOUT",
+    "videoEnabled": true,
+    "audioEnabled": true
+  },
+  "store": {
+    "id": "store_id",
+    "code": "tolstogo-90",
+    "name": "Tolstogo 90",
+    "city": "Almaty"
+  },
+  "register": {
+    "id": "register_id",
+    "code": "register-1",
+    "name": "Register 1",
+    "registerNumber": 1
+  },
+  "referenceImage": {
+    "id": "image_id",
+    "width": 1920,
+    "height": 1080,
+    "url": "/api/v1/cameras/camera_id/roi-reference-image"
+  },
+  "rois": {
+    "cashierRoi": [],
+    "scanRoi": [],
+    "customerRoi": [],
+    "recognitionRoi": {},
+    "paymentRoi": {},
+    "receiptRoi": {},
+    "packagingRoi": {},
+    "receivingRoi": {}
+  }
+}
+```
+
 Чтобы применить ROI к кадру:
 
 ```python

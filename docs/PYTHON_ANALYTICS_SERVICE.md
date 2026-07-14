@@ -174,6 +174,20 @@ Authorization: Bearer <accessToken>
 
 Координаты ROI всегда нормализованные `0..1`, а не пиксельные. Python-сервис при чтении ROI должен умножать `x` на текущую ширину кадра, `y` на текущую высоту кадра.
 
+Получить ROI по `cameraCode`:
+
+```http
+GET /api/v1/analytics/cameras/:cameraCode/rois
+x-api-key: <analytics_api_key>
+```
+
+Пример:
+
+```bash
+curl "http://localhost:3020/api/v1/analytics/cameras/cam10/rois" \
+  -H "x-api-key: analytics_key_REPLACE_ME"
+```
+
 ## Camera model для analytics
 
 Важные поля:
