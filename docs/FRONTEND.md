@@ -500,6 +500,31 @@ POST /api/v1/employee-notifications/:id/corrected
 
 Сообщения для кассира не должны блокировать POS-операцию.
 
+Для polling по конкретной кассе используйте enriched endpoint:
+
+```text
+GET /api/v1/registers/:id/violation-notifications
+GET /api/v1/stores/:storeCode/registers/:registerCode/violation-notifications
+```
+
+Пример:
+
+```http
+GET /api/v1/stores/tolstogo-90/registers/register-1/violation-notifications?markDelivered=true
+```
+
+Query params:
+
+```text
+limit=50
+status=PENDING,DELIVERED,DISPLAYED
+markDelivered=true
+```
+
+Ответ содержит notification, violation, store/register/camera/employee/receipt и evidence metadata.
+
+Эти два endpoint специально открыты без JWT/API key для кассового экрана. Остальные notification workflow endpoints, включая acknowledge/dismiss/corrected, требуют авторизацию.
+
 ### Workstation WebSocket
 
 ```text

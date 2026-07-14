@@ -2,6 +2,8 @@
 
 Этот документ описывает контракт между Python-сервисом видео/аудиоаналитики и backend. Python-сервис отвечает за RTSP, YOLO, tracking, pose, speech recognition, audio classification, correlation внутри media pipeline и генерацию evidence clips. Backend принимает уже обработанные события.
 
+Если нужна инструкция по внедрению “с нуля”, используйте подробный guide: [PYTHON_FULL_GUIDE.md](PYTHON_FULL_GUIDE.md).
+
 ## Граница ответственности
 
 Python-сервис делает:

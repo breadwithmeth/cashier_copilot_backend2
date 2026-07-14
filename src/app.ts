@@ -1,4 +1,5 @@
 import Fastify from 'fastify';
+import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import jwt from '@fastify/jwt';
 import sensible from '@fastify/sensible';
@@ -32,6 +33,12 @@ export async function buildApp() {
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
   await app.register(helmet);
+  await app.register(cors, {
+    origin: env.CORS_ORIGINS.split(',').map((origin) => origin.trim()).filter(Boolean),
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-api-key', 'x-request-id']
+  });
   await app.register(rateLimit, { max: 300, timeWindow: '1 minute' });
   await app.register(sensible);
   await app.register(websocket);

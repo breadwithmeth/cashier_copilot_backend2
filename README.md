@@ -54,6 +54,7 @@ Detailed integration guides:
 
 - [1C full guide](docs/1C_FULL_GUIDE.md)
 - [1C API contract](docs/1C_INTEGRATION.md)
+- [Python full guide](docs/PYTHON_FULL_GUIDE.md)
 - [Python analytics service](docs/PYTHON_ANALYTICS_SERVICE.md)
 - [Frontend](docs/FRONTEND.md)
 
