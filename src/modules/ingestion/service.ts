@@ -83,6 +83,20 @@ const audioEventInput = videoEventInput.extend({
   metadata: z.record(z.any()).default({})
 });
 
+const videoViolationRules: Record<string, string> = {
+  PRODUCT_TRANSFERRED: 'product-transferred-not-scanned',
+  SCAN_SIMULATION_SUSPECTED: 'scanner-without-pos-scan',
+  CONTAINER_TRANSFERRED: 'container-transferred-not-scanned',
+  RECEIPT_NOT_GIVEN: 'receipt-not-given',
+  BUSINESS_CARD_NOT_GIVEN: 'business-card-not-given',
+  PHONE_DISTRACTION_DETECTED: 'phone-distraction',
+  CUSTOMER_WAITING_TOO_LONG: 'customer-waiting-too-long',
+  CASHIER_ABSENT_DURING_SERVICE: 'cashier-absent-during-service',
+  OBJECT_LEFT_IN_SCAN_ZONE: 'object-left-in-scan-zone',
+  NO_PAYMENT_OR_RECEIPT_SPEECH: 'payment-or-receipt-speech-missing',
+  NO_FAREWELL: 'farewell-missing'
+};
+
 async function resolveStoreRegister(storeCode: string, registerCode?: string) {
   const store = await prisma.store.findUnique({ where: { code: storeCode } });
   if (!store) throw new HttpError(404, 'Store not found', 'STORE_NOT_FOUND');
@@ -215,9 +229,44 @@ async function ingestVideo(input: z.infer<typeof videoEventInput>) {
   for (const d of detections) {
     await prisma.detection.create({ data: { analyticsEventId: event.id, storeId: camera.storeId, registerId: register?.id, cameraId: camera.id, sessionId: session?.id, detectionType: d.detectionType ?? 'OTHER', className: d.className ?? 'unknown', confidence: d.confidence ?? input.confidence ?? 0, trackId: d.trackId, boundingBox: d.boundingBox, polygon: d.polygon, keypoints: d.keypoints, attributes: d.attributes ?? {}, detectedAt: input.occurredAt } });
   }
-  if (['PRODUCT_TRANSFERRED', 'SCAN_SIMULATION_SUSPECTED', 'CONTAINER_TRANSFERRED'].includes(input.eventType)) {
-    const code = input.eventType === 'CONTAINER_TRANSFERRED' ? 'container-transferred-not-scanned' : input.eventType === 'SCAN_SIMULATION_SUSPECTED' ? 'scanner-without-pos-scan' : 'product-transferred-not-scanned';
-    await createViolationFromRule(code, { storeId: camera.storeId, registerId: register?.id, cameraId: camera.id, sessionId: session?.id, analyticsEventId: event.id, confidence: input.confidence, occurredAt: input.occurredAt });
+  const actionType = register ? await prisma.actionType.findUnique({ where: { code: input.eventType } }) : null;
+  const action = actionType
+    ? await prisma.cashierAction.create({
+        data: {
+          storeId: camera.storeId,
+          registerId: register!.id,
+          cameraId: camera.id,
+          sessionId: session?.id,
+          actionTypeId: actionType.id,
+          startedAt: input.occurredAt,
+          confidence: input.confidence,
+          status: 'DETECTED',
+          mediaType: 'VIDEO',
+          source: input.source,
+          correlationId: input.correlationId,
+          details: {
+            analyticsEventId: event.id,
+            eventType: input.eventType,
+            payload: input.payload
+          }
+        }
+      })
+    : null;
+  if (action) {
+    await prisma.actionEventLink.create({ data: { actionId: action.id, analyticsEventId: event.id } });
+  }
+  const violationRuleCode = videoViolationRules[input.eventType];
+  if (violationRuleCode) {
+    await createViolationFromRule(violationRuleCode, {
+      storeId: camera.storeId,
+      registerId: register?.id,
+      cameraId: camera.id,
+      sessionId: session?.id,
+      actionId: action?.id,
+      analyticsEventId: event.id,
+      confidence: input.confidence,
+      occurredAt: input.occurredAt
+    });
   }
   return event;
 }

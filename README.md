@@ -57,6 +57,7 @@ Detailed integration guides:
 - [Python full guide](docs/PYTHON_FULL_GUIDE.md)
 - [Python analytics service](docs/PYTHON_ANALYTICS_SERVICE.md)
 - [Frontend](docs/FRONTEND.md)
+- [Service standards summary](docs/SERVICE_STANDARDS.md)
 
 ## Workflow
 
