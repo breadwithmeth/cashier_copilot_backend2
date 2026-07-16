@@ -459,6 +459,9 @@ model Camera {
   videoConfiguration      Json         @default("{}")
   audioConfiguration      Json         @default("{}")
   analyticsConfiguration  Json         @default("{}")
+  roiReferenceImageData   Bytes?
+  roiReferenceImageMime   String?
+  roiReferenceImageName   String?
   createdAt               DateTime     @default(now())
   updatedAt               DateTime     @updatedAt
   store                   Store        @relation(fields: [storeId], references: [id])
