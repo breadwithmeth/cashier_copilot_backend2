@@ -7,6 +7,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum StoreType {
+  RETAIL
+  CALL_CENTER
+}
+
 enum UserRole {
   SUPER_ADMIN
   ADMIN
@@ -35,6 +40,7 @@ enum LocationType {
   RECEIVING_AREA
   WAREHOUSE
   SALES_FLOOR
+  CALL_CENTER_FLOOR
   OTHER
 }
 
@@ -146,6 +152,7 @@ enum DetectionType {
   DAMAGED_PACKAGE
   BOX
   PALLET
+  HEADSET
   OTHER
 }
 
@@ -154,6 +161,8 @@ enum SpeakerType {
   CUSTOMER
   SUPPLIER
   EMPLOYEE
+  CALL_CENTER_AGENT
+  CALLER
   UNKNOWN
   MULTIPLE
 }
@@ -199,6 +208,7 @@ enum RuleDomain {
   RECEIVING
   CAMERA_HEALTH
   INTEGRATION
+  CALL_CENTER
 }
 
 enum TriggerType {
@@ -237,6 +247,7 @@ enum ViolationOperationType {
   SERVICE
   CAMERA
   INTEGRATION
+  CALL_CENTER
 }
 
 enum ReviewDecision {
@@ -379,6 +390,7 @@ model UserCityAccess {
 
 model Store {
   id         String            @id @default(cuid())
+  type        StoreType         @default(RETAIL)
   name       String
   code       String            @unique
   address    String
@@ -428,7 +440,7 @@ model Camera {
   videoAnalyticsStreamUrl String?
   videoChannel            String?
   videoSubType            String?
-  videoCodec              String?
+  videoCodec               String?
   configuredVideoFps      Int?
   videoStatus             StreamStatus @default(UNKNOWN)
   videoFps                Float?
@@ -489,7 +501,7 @@ model Employee {
 model Shift {
   id         String      @id @default(cuid())
   storeId    String
-  registerId String
+  registerId String?
   employeeId String?
   externalId String?
   startedAt  DateTime
@@ -505,7 +517,7 @@ model Shift {
 model Receipt {
   id                            String               @id @default(cuid())
   storeId                       String
-  registerId                    String
+  registerId                    String?
   employeeId                    String?
   shiftId                       String?
   checkoutSessionId             String?
@@ -595,7 +607,7 @@ model Payment {
 model PosOperation {
   id                String           @id @default(cuid())
   storeId           String
-  registerId        String
+  registerId        String?
   employeeId        String?
   shiftId           String?
   receiptId         String?
@@ -618,7 +630,7 @@ model PosOperation {
 model CheckoutSession {
   id                            String                @id @default(cuid())
   storeId                       String
-  registerId                    String
+  registerId                    String?
   cameraId                      String?
   employeeId                    String?
   shiftId                       String?
@@ -759,7 +771,7 @@ model ActionType {
 model CashierAction {
   id               String       @id @default(cuid())
   storeId          String
-  registerId       String
+  registerId       String?
   cameraId         String?
   sessionId        String?
   receiptId        String?
@@ -814,7 +826,7 @@ model ActionPosOperationLink {
 model SaleReconciliation {
   id                               String               @id @default(cuid())
   sessionId                        String
-  receiptId                        String
+  receiptId                        String?
   status                           ReconciliationStatus
   startedAt                        DateTime             @default(now())
   completedAt                      DateTime?
@@ -978,7 +990,7 @@ model EvidenceClip {
 model EmployeeNotification {
   id             String                  @id @default(cuid())
   storeId        String
-  registerId     String
+  registerId     String?
   employeeId     String?
   sessionId      String?
   receiptId      String?
@@ -1116,7 +1128,7 @@ model ReceivingDocumentItem {
   discrepancyQuantity Decimal?          @db.Decimal(14, 3)
   metadata            Json              @default("{}")
   createdAt           DateTime          @default(now())
-  updatedAt           DateTime          @updatedAt
+  updatedAt          DateTime          @updatedAt
   document            ReceivingDocument @relation(fields: [receivingDocumentId], references: [id], onDelete: Cascade)
 }
 
@@ -1136,7 +1148,7 @@ model ReceivingSession {
   discrepancyRecorded            Boolean                 @default(false)
   expectedQuantity               Decimal                 @db.Decimal(14, 3)
   detectedQuantity               Decimal?                @db.Decimal(14, 3)
-  confirmedQuantity              Decimal?                @db.Decimal(14, 3)
+  confirmedQuantity               Decimal?                @db.Decimal(14, 3)
   discrepancyQuantity            Decimal?                @db.Decimal(14, 3)
   minimumExpectedDurationSeconds Int?
   actualDurationSeconds          Int?

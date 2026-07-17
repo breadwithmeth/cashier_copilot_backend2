@@ -9,7 +9,7 @@ const baseCreate = z.record(z.any());
 
 export function registerDomainCrud(app: FastifyInstance, prisma: PrismaClient) {
   const modules = [
-    ['stores', 'store', ['name', 'code', 'city']],
+    ['stores', 'store', ['name', 'code', 'city', 'type']],
     ['registers', 'register', ['name', 'code'], true],
     ['cameras', 'camera', ['name', 'code'], true],
     ['employees', 'employee', ['firstName', 'lastName', 'employeeNumber'], true],
