@@ -5,7 +5,7 @@ import { hashApiKey, hashPassword } from '../common/utils/security.js';
 const prisma = new PrismaClient();
 
 const actionCodes = [
-  'CUSTOMER_ENTERED','CUSTOMER_LEFT','CUSTOMER_WAITING','CUSTOMER_WAITING_TOO_LONG','CASHIER_PRESENT','CASHIER_ABSENT','CASHIER_ABSENT_DURING_SERVICE','GREETING_DETECTED','NEED_IDENTIFICATION_DETECTED','CONSULTATION_DETECTED','UPSELL_DETECTED','CASH_SCRIPT_DETECTED','PURCHASE_AMOUNT_ANNOUNCED','CHANGE_AMOUNT_ANNOUNCED','GOODBYE_DETECTED','NO_FAREWELL','NO_PAYMENT_OR_RECEIPT_SPEECH','INCORRECT_TONE_DETECTED','PROFANITY_DETECTED','PHONE_DISTRACTION_DETECTED','PRODUCT_PICKED','PRODUCT_MOVED_TO_CUSTOMER','PRODUCT_TRANSFERRED','PRODUCT_SCANNED','PRODUCT_NOT_SCANNED','SCANNER_PRESENTED','SCANNER_BEEP_DETECTED','SCAN_SIMULATION_SUSPECTED','PRODUCT_REMOVED_FROM_RECEIPT','CONTAINER_USED','CONTAINER_TRANSFERRED','CONTAINER_SCANNED','CONTAINER_NOT_SCANNED','OBJECT_LEFT_IN_SCAN_ZONE','PAYMENT_STARTED','CASH_PAYMENT_DETECTED','CARD_PAYMENT_DETECTED','QR_PAYMENT_DETECTED','MONEY_RECEIVED','CHANGE_GIVEN','PAYMENT_METHOD_MISMATCH','PAYMENT_AMOUNT_MISMATCH','RECEIPT_PRINTED','RECEIPT_GIVEN','RECEIPT_PLACED_IN_BAG','RECEIPT_NOT_GIVEN','BUSINESS_CARD_GIVEN','BUSINESS_CARD_NOT_GIVEN','AGE_DOCUMENT_REQUESTED','AGE_DOCUMENT_SHOWN','RETURN_DETECTED','VOID_DETECTED','PRODUCT_TRANSFER_DURING_RETURN','PRODUCT_TRANSFER_DURING_VOID','RECEIVING_STARTED','INVOICE_CHECKED','PRODUCT_COUNT_STARTED','PRODUCT_COUNT_COMPLETED','EXPIRATION_DATE_CHECKED','PACKAGE_INTEGRITY_CHECKED','DAMAGED_PRODUCT_SEPARATED','RECEIVING_DIFFERENCE_RECORDED','PRODUCT_MOVED_WITHOUT_COUNT','RECEIVING_COMPLETED'
+  'CUSTOMER_ENTERED','CUSTOMER_LEFT','CUSTOMER_WAITING','CUSTOMER_WAITING_TOO_LONG','CASHIER_PRESENT','CASHIER_ABSENT','CASHIER_ABSENT_DURING_SERVICE','GREETING_DETECTED','NEED_IDENTIFICATION_DETECTED','CONSULTATION_DETECTED','UPSELL_DETECTED','CASH_SCRIPT_DETECTED','PURCHASE_AMOUNT_ANNOUNCED','CHANGE_AMOUNT_ANNOUNCED','GOODBYE_DETECTED','NO_FAREWELL','NO_PAYMENT_OR_RECEIPT_SPEECH','INCORRECT_TONE_DETECTED','PROFANITY_DETECTED','PHONE_DISTRACTION_DETECTED','PRODUCT_PICKED','PRODUCT_MOVED_TO_CUSTOMER','PRODUCT_TRANSFERRED','PRODUCT_NOT_SCANNED','SCANNER_PRESENTED','SCANNER_BEEP_DETECTED','SCAN_SIMULATION_SUSPECTED','PRODUCT_REMOVED_FROM_RECEIPT','CONTAINER_USED','CONTAINER_TRANSFERRED','CONTAINER_SCANNED','CONTAINER_NOT_SCANNED','OBJECT_LEFT_IN_SCAN_ZONE','PAYMENT_STARTED','CASH_PAYMENT_DETECTED','CARD_PAYMENT_DETECTED','QR_PAYMENT_DETECTED','MONEY_RECEIVED','CHANGE_GIVEN','PAYMENT_METHOD_MISMATCH','PAYMENT_AMOUNT_MISMATCH','RECEIPT_PRINTED','RECEIPT_GIVEN','RECEIPT_PLACED_IN_BAG','RECEIPT_NOT_GIVEN','BUSINESS_CARD_GIVEN','BUSINESS_CARD_NOT_GIVEN','AGE_DOCUMENT_REQUESTED','AGE_DOCUMENT_SHOWN','RETURN_DETECTED','VOID_DETECTED','PRODUCT_TRANSFER_DURING_RETURN','PRODUCT_TRANSFER_DURING_VOID','RECEIVING_STARTED','INVOICE_CHECKED','PRODUCT_COUNT_STARTED','PRODUCT_COUNT_COMPLETED','EXPIRATION_DATE_CHECKED','PACKAGE_INTEGRITY_CHECKED','DAMAGED_PRODUCT_SEPARATED','RECEIVING_DIFFERENCE_RECORDED','PRODUCT_MOVED_WITHOUT_COUNT','RECEIVING_COMPLETED'
 ];
 
 const rules = [
@@ -67,6 +67,30 @@ async function main() {
     update: {},
     create: { storeId: store.id, name: 'Receiving camera', code: 'receiving-cam1', locationType: 'RECEIVING_AREA', videoRtspUrl: 'rtsp://video:pass@camera/receiving', audioEnabled: false }
   });
+  const callCenter = await prisma.store.upsert({
+    where: { code: 'cc-almaty-01' },
+    update: {},
+    create: {
+      type: 'CALL_CENTER',
+      name: 'Call Center Almaty',
+      code: 'cc-almaty-01',
+      address: 'Almaty, Tole bi 59',
+      city: 'Almaty'
+    }
+  });
+  await prisma.camera.upsert({
+    where: { code: 'cc-cam-01' },
+    update: {},
+    create: {
+      storeId: callCenter.id,
+      name: 'Agent Desk 1',
+      code: 'cc-cam-01',
+      locationType: 'CALL_CENTER_FLOOR',
+      videoRtspUrl: 'rtsp://localhost:8554/cc-agent-1',
+      audioEnabled: true,
+      audioRtspUrl: 'rtsp://localhost:8554/cc-agent-1-audio'
+    }
+  });
   const employee = await prisma.employee.upsert({
     where: { externalId: 'employee-45' },
     update: {},
@@ -118,12 +142,12 @@ async function main() {
         serviceType,
         keyHash: hashApiKey(raw),
         permissions: [...permissions],
-        allowedStoreIds: [store.id],
+        allowedStoreIds: [store.id, callCenter.id],
         allowedRegisterIds: [register.id],
         allowedCameraIds: [],
         isActive: true
       },
-      create: { name, serviceType, keyPrefix, keyHash: hashApiKey(raw), permissions: [...permissions], allowedStoreIds: [store.id], allowedRegisterIds: [register.id], allowedCameraIds: [] }
+      create: { name, serviceType, keyPrefix, keyHash: hashApiKey(raw), permissions: [...permissions], allowedStoreIds: [store.id, callCenter.id], allowedRegisterIds: [register.id], allowedCameraIds: [] }
     });
     console.log(`${name} API key loaded from env: ${keyPrefix}_***`);
   }

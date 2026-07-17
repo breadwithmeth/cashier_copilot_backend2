@@ -393,7 +393,7 @@ model Store {
   type        StoreType         @default(RETAIL)
   name       String
   code       String            @unique
-  address    String
+  address    String?
   city       String
   timezone   String            @default("Asia/Almaty")
   isActive   Boolean           @default(true)
